@@ -25,7 +25,8 @@
 # ── identity ────────────────────────────────────────────────────────────────
 
 # The preset's own persona, shadowing the deployment default for this agent.
-# `{{model}}` and `{{cwd}}` resolve from the agent's own route and workspace.
+# `{{model}}` resolves from the agent's own route. 0.2.1 起宿主不再注册 `{{cwd}}`
+# （写了会抛 unknown prompt variable），工作目录改由 runtime context 提供。
 - id: persona
   name: '@deepseek-ai/dsh-persona'
   config:
@@ -306,18 +307,11 @@
         modelSelectionSettings: true
         backgroundMode: continuable
         # 子智能体是角色执行者（信息收集/资产梳理/漏洞发现/漏洞利用/内网渗透），**必须是叶子节点**：
-        # 靠提示词劝"不要再往下委派"是软的——模型完全可以无视。这里直接把委派工具从子会话的
-        # 工具目录里摘掉，子智能体连看都看不到 subagent / subagent_fork / workflow / ralph。
-        # maxDepth 同时收成 1 作为二道保险（默认 3 层太深，会白吃并发预算与上下文）。
+        # 靠提示词劝"不要再往下委派"是软的——模型完全可以无视。
+        # 0.2.1 起宿主删掉了 toolFilter：这一行只要出现该键就抛 "no longer supported"，
+        # 整份预设挂不上、模式下拉里选不中。叶子约束只能由 maxDepth 承担——子会话
+        # 拿不到再下一层，派发链路在深度上就断了。不要再把 toolFilter 加回来。
         maxDepth: 1
-        # 注意：不能 deny `subagent` —— 它是这一行自己注册的 scoped 工具，不在全局工具库里，
-        # 写进 deny 会让 tools.restrict() 校验失败、整个委派路径报 "unknown global tool"（v0.8.0 踩过）。
-        # 子智能体拿不到 subagent_fork/workflow/ralph，加上 maxDepth: 1，实际已无派发能力。
-        toolFilter:
-          deny:
-            - subagent_fork
-            - workflow
-            - ralph
 
     # Fork omits model selection so provider/model stay equal to the parent and
     # the inherited history remains eligible for KV Cache reuse. This preset
