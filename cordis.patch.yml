@@ -28,7 +28,12 @@
   config:
     includeHarnessIdentity: false
     personaPrefix: ""
-    personaSuffix: Your working directory is {{cwd}}.
+    # 0.2.1 起宿主只注册 provider / model 两个 prompt 变量：这里再写
+    # `Your working directory is {{cwd}}.` 会在组装 persona-suffix 时抛
+    # unknown prompt variable，整轮对话直接失败（#126）。
+    # 工作目录由宿主的 working-directory runtime context 提供；本插件
+    # overlayOfficialIdentity() 也会按会话 cwd 落字面路径，所以这里留空。
+    personaSuffix: ""
 
 - id: dsh-purge
   inject: [systemPrompt, tools]
